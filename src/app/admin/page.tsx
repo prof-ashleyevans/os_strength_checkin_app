@@ -62,12 +62,27 @@ export default function AdminPage() {
             const { data, error } = await supabase
                 .from('athletes')
                 .select(`
-                    id, first_name, last_name, email, current_week, last_checkin, assigned_date,
-                    program:program_id (name, duration)
-                `)
+                        id,
+                        first_name,
+                        last_name,
+                        email,
+                        current_week,
+                        last_checkin,
+                        assigned_date,
+                        program:program_id (
+                          name,
+                          duration
+                        )
+                      `)
                 .order('last_name')
 
-            if (!error && data) setAthletes(data)
+            if (!error && data) {
+                const formatted = data.map((athlete) => ({
+                    ...athlete,
+                    program: Array.isArray(athlete.program) ? athlete.program[0] : athlete.program,
+                }));
+                setAthletes(formatted as Athlete[]);
+            }
         }
 
         const fetchPrograms = async () => {
