@@ -309,8 +309,8 @@ export default function AdminPage() {
                     <th className="border px-2 py-2 text-center cursor-pointer" onClick={() => toggleSort('last_name')}>Last Name</th>
                     <th className="border px-2 py-2 text-center cursor-pointer" onClick={() => toggleSort('email')}>Email</th>
                     <th className="border px-2 py-2 text-center">Program</th>
-                    <th className="border px-2 py-2 text-center">Duration</th>
                     <th className="border px-2 py-2 text-center cursor-pointer" onClick={() => toggleSort('assigned_date')}>Assigned Date</th>
+                    <th className="border px-2 py-2 text-center">Duration (Weeks) </th>
                     <th className="border px-2 py-2 text-center">Expected Week</th>
                     <th className="border px-2 py-2 text-center">Actual Week</th>
                 </tr>
@@ -372,8 +372,9 @@ export default function AdminPage() {
                         <td className="border text-center px-2 py-1">{athlete.last_name}</td>
                         <td className="border text-left px-2 py-1">{athlete.email}</td>
                         <td className="border text-left px-2 py-1">{athlete.program?.name}</td>
-                        <td className="border text-center px-2 py-1">{athlete.program?.duration}</td>
                         <td className="border text-center px-2 py-1">{athlete.assigned_date}</td>
+                        <td className="border text-center px-2 py-1">{athlete.program?.duration}</td>
+
                         <td className="border text-center px-2 py-1">
                             {athlete.program
                                 ? calculateExpectedWeek(athlete.assigned_date, athlete.program.duration)
