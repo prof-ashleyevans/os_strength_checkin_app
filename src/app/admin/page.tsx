@@ -31,7 +31,8 @@ export default function AdminPage() {
     const [programs, setPrograms] = useState<{ id: string; name: string; duration: number }[]>([])
     const [assignMode, setAssignMode] = useState(false)
     const [selectedProgramId, setSelectedProgramId] = useState<string | null>(null)
-    const [assignDate, setAssignDate] = useState<string>(new Date().toISOString().split('T')[0])
+    const [editAssignDate, setEditAssignDate] = useState<string>(new Date().toISOString().split('T')[0])
+    const [bulkAssignDate, setBulkAssignDate] = useState<string>(new Date().toISOString().split('T')[0])
     const [sortKey, setSortKey] = useState<keyof Athlete | null>(null)
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
     const [showAddForm, setShowAddForm] = useState(false)
@@ -40,6 +41,16 @@ export default function AdminPage() {
     const [editLastName, setEditLastName] = useState('');
     const [editEmail, setEditEmail] = useState('');
     const [editCurrentWeek, setEditCurrentWeek] = useState<number>(1);
+    const [showAddProgramForm, setShowAddProgramForm] = useState(false);
+    const [editProgramId, setEditProgramId] = useState<string | null>(null)
+    const [editProgramName, setEditProgramName] = useState<string>('')
+    const [editProgramDuration, setEditProgramDuration] = useState<number>(4)
+
+    const [newProgram, setNewProgram] = useState({
+        name: '',
+        duration: 4,
+    });
+
     const [newAthlete, setNewAthlete] = useState({
         first_name: '',
         last_name: '',
@@ -123,6 +134,60 @@ export default function AdminPage() {
         <div className="max-w-6xl mx-auto px-6 py-8">
             <h1 className="text-3xl font-bold mb-6">Admin Dashboard</h1>
 
+            {showAddProgramForm && (
+                <div className="border p-4 mb-6 bg-gray-800  rounded">
+                    <h2 className="text-lg font-bold mb-2">Create New Program</h2>
+                    <input
+                        className="border p-2 mb-2 w-full"
+                        placeholder="Program Name"
+                        value={newProgram.name}
+                        onChange={(e) => setNewProgram({ ...newProgram, name: e.target.value })}
+                    />
+                    <input
+                        type="number"
+                        className="border p-2 mb-4 w-full"
+                        placeholder="Duration (in weeks)"
+                        value={newProgram.duration}
+                        min={1}
+                        onChange={(e) => setNewProgram({ ...newProgram, duration: Number(e.target.value) })}
+                    />
+                    <div className="flex gap-4">
+                        <button
+                            className="bg-purple-600 text-white px-4 py-2 rounded"
+                            onClick={async () => {
+                                if (!newProgram.name || !newProgram.duration) {
+                                    return alert('All fields are required.');
+                                }
+
+                                const { error } = await supabase.from('programs').insert({
+                                    name: newProgram.name,
+                                    duration: newProgram.duration,
+                                });
+
+                                if (error) {
+                                    alert('Failed to create program.');
+                                } else {
+                                    alert('Program created!');
+                                    setShowAddProgramForm(false);
+                                    setNewProgram({ name: '', duration: 4 });
+                                    window.location.reload(); // or re-fetch
+                                }
+                            }}
+                        >
+                            Save Program
+                        </button>
+                        <button
+                            className="bg-gray-500 text-white px-4 py-2 rounded"
+                            onClick={() => setShowAddProgramForm(false)}
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            )}
+
+
+
 
             {showAddForm && (
                 <div className="border p-4 mb-6 bg-gray-700 rounded">
@@ -204,6 +269,13 @@ export default function AdminPage() {
                 </button>
 
                 <button
+                    className="bg-purple-600 text-white px-4 py-2 rounded"
+                    onClick={() => setShowAddProgramForm(true)}
+                >
+                    + Create New Program
+                </button>
+
+                <button
                     className={`px-4 py-2 rounded ${
                         selectedAthletes.size > 0 ? 'bg-blue-600 text-white' : 'bg-blue-600 text-white cursor-not-allowed'
                     }`}
@@ -215,10 +287,12 @@ export default function AdminPage() {
                     Assign Programming
                 </button>
             </div>
+
             <table className="w-full table-auto border text-sm">
                 <thead className="bg-red-600 text-white">
                 <tr>
                     <th className="border px-4 py-2 text-left w-40">
+                        Select All
                         <input
                             type="checkbox"
                             className="ml-2"
@@ -267,7 +341,7 @@ export default function AdminPage() {
                                         setEditLastName(athlete.last_name)
                                         setEditEmail(athlete.email)
                                         setSelectedProgramId(programs.find(p => p.name === athlete.program?.name)?.id || '')
-                                        setAssignDate(athlete.assigned_date)
+                                        setEditAssignDate(athlete.assigned_date)
                                         setEditCurrentWeek(athlete.current_week)
                                     }}
                                     title="Edit athlete"
@@ -310,6 +384,109 @@ export default function AdminPage() {
                 ))}
                 </tbody>
             </table>
+
+            {/* Programs Table */}
+            <h2 className="text-2xl font-semibold mt-12 mb-4">Programs</h2>
+            <table className="w-full table-auto border text-sm">
+                <thead className="bg-orange-700 text-white">
+                <tr>
+                    <th className="border px-4 py-2 text-left w-40">Actions</th>
+                    <th className="border px-2 py-2 text-center">Program Name</th>
+                    <th className="border px-2 py-2 text-center">Duration (weeks)</th>
+                </tr>
+                </thead>
+                <tbody>
+                {programs.map((program) => (
+                    <tr key={program.id}>
+                        <td className="border px-2 py-1 text-left" style={{ width: '1%', whiteSpace: 'nowrap' }}>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    className="text-blue-600"
+                                    onClick={() => {
+                                        setEditProgramId(program.id);
+                                        setEditProgramName(program.name);
+                                        setEditProgramDuration(program.duration);
+                                    }}
+                                    title="Edit program"
+                                >
+                                    ✏️
+                                </button>
+                                <button
+                                    className="text-red-600"
+                                    onClick={async () => {
+                                        const confirmed = window.confirm(`Delete program "${program.name}"?`);
+                                        if (!confirmed) return;
+                                        const { error } = await supabase.from('programs').delete().eq('id', program.id);
+                                        if (!error) {
+                                            setPrograms(programs.filter((p) => p.id !== program.id));
+                                        }
+                                    }}
+                                    title="Delete program"
+                                >
+                                    🗑️
+                                </button>
+                            </div>
+                        </td>
+                        <td className="border text-center px-2 py-1">{program.name}</td>
+                        <td className="border text-center px-2 py-1">{program.duration}</td>
+                    </tr>
+                ))}
+                </tbody>
+            </table>
+
+            {/* Edit Program Form */}
+            {editProgramId && (
+                <div className="border p-4 my-6 bg-purple-950 rounded">
+                    <h2 className="text-lg font-bold mb-2">Edit Program</h2>
+                    <input
+                        className="border p-2 bg-white text-black mb-2 w-full"
+                        placeholder="Program Name"
+                        value={editProgramName}
+                        onChange={(e) => setEditProgramName(e.target.value)}
+                    />
+                    <input
+                        type="number"
+                        className="border p-2 bg-white text-black mb-4 w-full"
+                        placeholder="Duration (in weeks)"
+                        value={editProgramDuration}
+                        onChange={(e) => setEditProgramDuration(Number(e.target.value))}
+                    />
+                    <div className="flex gap-4">
+                        <button
+                            className="bg-green-600 text-white px-4 py-2 rounded"
+                            onClick={async () => {
+                                const { error } = await supabase
+                                    .from('programs')
+                                    .update({
+                                        name: editProgramName,
+                                        duration: editProgramDuration,
+                                    })
+                                    .eq('id', editProgramId);
+
+                                if (!error) {
+                                    setPrograms(programs.map(p =>
+                                        p.id === editProgramId
+                                            ? { ...p, name: editProgramName, duration: editProgramDuration }
+                                            : p
+                                    ));
+                                    setEditProgramId(null);
+                                } else {
+                                    alert('Failed to update program.');
+                                }
+                            }}
+                        >
+                            Save Changes
+                        </button>
+                        <button
+                            className="bg-gray-500 text-white px-4 py-2 rounded"
+                            onClick={() => setEditProgramId(null)}
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            )}
+
 
             {/*Edit mode*/}
 
@@ -375,9 +552,11 @@ export default function AdminPage() {
                     <input
                         type="date"
                         className="w-full p-2 border bg-white text-black rounded mb-4"
-                        value={assignDate}
-                        onChange={(e) => setAssignDate(e.target.value)}
+                        value={editAssignDate}
+                        onChange={(e) => setEditAssignDate(e.target.value)}
                     />
+
+
                     <div className="flex gap-4">
                         <button
                             className="bg-green-600 text-white px-4 py-2 rounded"
@@ -388,7 +567,7 @@ export default function AdminPage() {
                                     last_name: editLastName,
                                     email: editEmail,
                                     program_id: selectedProgramId,
-                                    assigned_date: assignDate,
+                                    assigned_date: editAssignDate,
                                     current_week: editCurrentWeek
                                 }).eq('id', id)
 
@@ -436,9 +615,11 @@ export default function AdminPage() {
                     <input
                         type="date"
                         className="w-full p-2 border rounded mb-4"
-                        value={assignDate}
-                        onChange={(e) => setAssignDate(e.target.value)}
+                        value={bulkAssignDate}
+                        onChange={(e) => setBulkAssignDate(e.target.value)}
                     />
+
+
 
                     <div className="flex gap-4">
                         <button
@@ -449,7 +630,7 @@ export default function AdminPage() {
                                 const updates = Array.from(selectedAthletes).map((athleteId) =>
                                     supabase.from('athletes').update({
                                         program_id: selectedProgramId,
-                                        assigned_date: assignDate,
+                                        assigned_date: bulkAssignDate,
                                         current_week: 1,
                                     }).eq('id', athleteId)
                                 )
@@ -472,6 +653,9 @@ export default function AdminPage() {
                     </div>
                 </div>
             )}
+
+            {/*add new programming*/}
+
 
         </div>
     )
